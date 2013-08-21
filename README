@@ -1,0 +1,32 @@
+README
+======
+
+Tools to interact with the Voltcraft DL-120TH data logger.
+
+Command line
+
+dl-120th.py -c {info|save|reset|config|print} [-l loggername] [-n numdata] [-i interval] [-o output]
+
+ex :
+
+- To show the configuration of the datalogger :
+    dl-120th.py -c info
+
+- To config the datalogger :
+    dl-120th.py -c config -l loggername -n numdata -i interval
+
+- To print the data from the datalogger :
+    dl-120th.py -c print
+
+- To save the data from the datalogger to a file named {loggername}_{start_recording_date}.dat:
+    dl-120th.py -c save
+
+- To save the data from the datalogger to a file named /tmp/data.out:
+    dl-120th.py -c save -o /tmp/data.out
+
+- To reset the datalogger to start collecting data (with previous interval, number of data and name):
+    dl-120th.py -c reset
+
+- To reset the data from the datalogger with new name, number and interval:
+    dl-120th.py -c reset -l loggername -n numdata -i interval
+
