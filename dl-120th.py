@@ -170,10 +170,16 @@ class Dl120th:
         print "\t>End of recording:", str(self.end_rec)
         print "\t>Threshold temp low:", hex(self.thresh_temp_low), self.thresh_temp_low
         print "\t>Threshold temp high:", hex(self.thresh_temp_high), self.thresh_temp_high
-        print "\t>Farenheit conf:", hex(self.temp_fahrenheit)
+        if self.temp_fahrenheit == 1 :
+            print "\t>Farenheit conf: True (", hex(self.temp_fahrenheit), ")"
+        else:
+            print "\t>Farenheit conf: False °C (", hex(self.temp_fahrenheit), ")"
         print "\t>Led conf:", hex(self.led_conf)
         print "\t>Name:", self.logger_name, ": length=", len(self.logger_name)
-        print "\t>Start logging:", hex(self.logger_start)
+        if self.logger_start == 1 :
+            print "\t>Start logging: Manual (you need to press the red button to start logging)"
+        else:
+            print "\t>Start logging: Automatic"
         print "\t>Threshold rh low:", hex(self.thresh_rh_low), self.thresh_rh_low
         print "\t>Threshold rh high:", hex(self.thresh_rh_high), self.thresh_rh_high
         print "\t>logger end:", hex(self.logger_end)
