@@ -42,6 +42,18 @@ class Dl120th:
     BULK_IN_EP      = 0x81          #: Endpoint for Bulk reads
     BULK_OUT_EP     = 0x02          #: Endpoint for Bulk writes
     PACKET_LENGTH   = 0x40          #: 64 bytes
+    
+    THRESHOLD = [0x0000, 0x3F80, 0x4000, 0x4040, 0x4080, 0x40A0, 0x40C0, 0x40E0, 0x4100, 
+        0x4110, 0x4120, 0x4130, 0x4140, 0x4150, 0x4160, 0x4170, 0x4180, 0x4188, 0x4190, 
+        0x4198, 0x41A0, 0x41A8, 0x41B0, 0x41B8, 0x41C0, 0x41C8, 0x41D0, 0x41D8, 0x41E0, 
+        0x41E8, 0x41F0, 0x41F8, 0x4200, 0x4204, 0x4208, 0x420C, 0x4210, 0x4214, 0x4218, 
+        0x421C, 0x4220, 0x4224, 0x4228, 0x422C, 0x4230, 0x4234, 0x4238, 0x423C, 0x4240, 
+        0x4244, 0x4248, 0x424C, 0x4250, 0x4254, 0x4258, 0x425C, 0x4260, 0x4264, 0x4268, 
+        0x426C, 0x4270, 0x4274, 0x4278, 0x427C, 0x4280, 0x4282, 0x4284, 0x4286, 0x4288, 
+        0x428A, 0x428C, 0x428E, 0x4290, 0x4292, 0x4294, 0x4296, 0x4298, 0x429A, 0x429C, 
+        0x429E, 0x42A0, 0x42A2, 0x42A4, 0x42A6, 0x42A8, 0x42AA, 0x42AC, 0x42AE, 0x42B0, 
+        0x42B2, 0x42B4, 0x42B6, 0x42B8, 0x42BA, 0x42BC, 0x42BE, 0x42C0, 0x42C2, 0x42C4, 
+        0x42C6, 0x42C8]
 
     num_data = 0
     temp = []
@@ -168,14 +180,14 @@ class Dl120th:
         print "\t>Interval: ", self.interval
         print "\t>Start of recording:", str(self.start_rec)
         print "\t>End of recording:", str(self.end_rec)
-        print "\t>Threshold temp low:", hex(self.thresh_temp_low), self.thresh_temp_low
-        print "\t>Threshold temp high:", hex(self.thresh_temp_high), self.thresh_temp_high
+        print "\t>Threshold temp low:", THRESHOLD.index(self.thresh_temp_low)
+        print "\t>Threshold temp high:", THRESHOLD.index(self.thresh_temp_high)
         print "\t>Farenheit conf:", hex(self.temp_fahrenheit)
         print "\t>Led conf:", hex(self.led_conf)
         print "\t>Name:", self.logger_name, ": length=", len(self.logger_name)
         print "\t>Start logging:", hex(self.logger_start)
-        print "\t>Threshold rh low:", hex(self.thresh_rh_low), self.thresh_rh_low
-        print "\t>Threshold rh high:", hex(self.thresh_rh_high), self.thresh_rh_high
+        print "\t>Threshold rh low:", THRESHOLD.index(self.thresh_rh_low)
+        print "\t>Threshold rh high:", THRESHOLD.index(self.thresh_rh_high)
         print "\t>logger end:", hex(self.logger_end)
         print "Configuration end\n"
 
