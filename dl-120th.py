@@ -140,11 +140,16 @@ class Dl120th:
         self.end_rec = self.start_rec + timedelta(seconds=duration)
         self.logger_name = self.logger_name.replace('\00','')
 
-    def write_config(self, name, num_data, interval):
+    def write_config(self, name, num_data, interval, start):
         """ Write the configuration. """
 
         # Construct configuration data
         now = datetime.now()
+
+        if start == 'A':
+            self.logger_start = 2
+        else:
+            self.logger_start = 1
 
         buf = pack("IIIIIhhhhBBBBBBB16sBhhhhI", 0xce, num_data, \
         0, interval, now.year, 0, self.thresh_temp_low, 0, self.thresh_temp_high, \
@@ -182,7 +187,7 @@ class Dl120th:
         print "\t>End of recording:", str(self.end_rec)
         print "\t>Threshold temp low:", THRESHOLD.index(self.thresh_temp_low)
         print "\t>Threshold temp high:", THRESHOLD.index(self.thresh_temp_high)
-        print "\t>Farenheit conf:", hex(self.temp_fahrenheit)
+        print "\t>Fahrenheit conf:", hex(self.temp_fahrenheit)
         print "\t>Led conf:", hex(self.led_conf)
         print "\t>Name:", self.logger_name, ": length=", len(self.logger_name)
         print "\t>Start logging:", hex(self.logger_start)
@@ -302,10 +307,6 @@ class Dl120th:
 
 if __name__ == '__main__':
 
-    # Initialization of the device
-    dl120th = Dl120th()
-    dl120th.open()
-
     parser = argparse.ArgumentParser(description='Interface to the data logger Voltcraft DL-120TH.',
         prog='dl-120th.py', version='0.1')
     parser.add_argument('-c','--command', help='Command for the data logger.',
@@ -313,6 +314,7 @@ if __name__ == '__main__':
     parser.add_argument('-l', '--logname', help='Name of the data logger.')
     parser.add_argument('-n', '--numdata', help='Number of data to collect (between 50 and 16000).', type=int)
     parser.add_argument('-i', '--interval', help='Interval between data collect in seconds. (between 2 and 86400)', type=int)
+    parser.add_argument('-s', '--start', help='Automatic (A) or manual (M) start.')
     parser.add_argument('-o', '--output', help='Filename to store the data')
 
     args = parser.parse_args()
@@ -321,6 +323,11 @@ if __name__ == '__main__':
     #print "Logger ", args.logname
     #print "Number of data", args.numdata
     #print "Interval", args.interval
+
+    # Initialization of the device
+    dl120th = Dl120th()
+    dl120th.open()
+    dl120th.read_config()
 
     commandOk = True
 
@@ -334,38 +341,62 @@ if __name__ == '__main__':
         if args.interval == None:
             print "Interval is mandatory in config mode."
             commandOk = False
-        if len(args.logname) > 16:
-            print "Logname length should be less or equals than 16."
+        if len(args.logname) < 1:
+            print "Logname is mandatory in config mode."
+            commandOk = False
+        if len(args.logname) > 15:
+            print "Logname length should be less or equals than 15."
             commandOk = False
         if args.numdata < 50 or args.numdata > 16000:
-            print "The number of data to record sould be between 50 and 16000."
+            print "The number of data to record should be between 50 and 16000."
             commandOk = False
         if args.interval < 2 or args.numdata > 86400:
-            print "The interval of data collected sould be between 2s and 86400s (24h)."
+            print "The interval of data collected should be between 2s and 86400s (24h)."
+            commandOk = False
+        if args.start != None and args.start != 'A' and args.start != 'M' :
+            print "Start should be A (Automatic) or M (Manual)."
             commandOk = False
 
+    if args.command == 'reset':
+        dl120th.read_config()
+        if args.logname != None and len(args.logname) > 15:
+            print "Logname length should be less or equals than 15."
+            commandOk = False
+        else:
+            dl120th.logger_name = args.logname
+        if args.numdata != None and (args.numdata < 50 or args.numdata > 16000):
+            print "The number of data to record should be between 50 and 16000."
+            commandOk = False
+        else:
+            dl120th.num_data_conf = args.numdata
+        if args.interval != None and (args.interval < 2 or args.numdata > 86400):
+            print "The interval of data collected should be between 2s and 86400s (24h)."
+            commandOk = False
+        else:
+            dl120th.interval = args.interval
+        if args.start != None and args.start != 'A' and args.start != 'M' :
+            print "Start should be A (Automatic) or M (Manual)."
+            commandOk = False
+        else:
+            if args.start == 'A' :
+                dl120th.logger_start = 2
+            if args.start == 'M' :
+                dl120th.logger_start = 1
+            
     if not commandOk:
         print "Command line error..."
         sys.exit(2)
 
-    dl120th.read_config()
-
     if args.command == 'config':
-        print args.command, " Logger=", args.logname, " numdata=", args.numdata, "@", args.interval, " sec."
-        dl120th.write_config(args.logname, args.numdata, args.interval)
+        print args.command, " Logger=", args.logname, " numdata=", args.numdata, "@", args.interval, " sec. "
+        dl120th.write_config(args.logname, args.numdata, args.interval, args.logger_start)
+
+    if args.command == 'reset':
+        print args.command, " Logger=", args.logname, " numdata=", args.numdata, "@", args.interval, " sec. "
+        dl120th.write_config(dl120th.logger_name, dl120th.num_data_conf, dl120th.interval, dl120th.logger_start)
 
     if args.command == 'info':
         dl120th.print_config()
-
-    if args.command == 'reset':
-        print args.command, " Logger=", args.logname, " numdata=", args.numdata, "@", args.interval, " sec."
-        if args.logname != None:
-            dl120th.logger_name = args.logname
-        if args.numdata != None:
-            dl120th.num_data_conf = args.numdata
-        if args.interval != None:
-            dl120th.interval = args.interval
-        dl120th.write_config(dl120th.logger_name, dl120th.num_data_conf, dl120th.interval)
 
     if args.command == 'print':
         print args.command
