@@ -69,7 +69,7 @@ class Dl120th:
         self.status = (0,0,0,0)
 
     def open(self):
-        """ Aquire device interface """
+        """ Acquire device interface """
         self.device = self.device_descriptor.get_device()
         if not self.device:
             print >> sys.stderr, "Device isn't plugged in"
@@ -141,40 +141,53 @@ class Dl120th:
         self.logger_name = self.logger_name.replace('\00','')
 
     def write_config(self, name, num_data, interval, start):
-        """ Write the configuration. """
+      """ Write the configuration. """
+      print "DL120TH Logger=", self.logger_name, " numdata=", self.num_data_conf, "@", self.interval, " sec. ", "Start=", self.logger_start
+      print "params name=", name, " num_data=", num_data, " interval=", interval, " start_logging=", start
 
-        # Construct configuration data
-        now = datetime.now()
+      # Construct configuration data
+      now = datetime.now()
+      
+      if name == None:
+        name = self.logger_name
+        
+      if num_data == None:
+        num_data = self.num_data_conf
+        
+      if interval == None:
+        interval = self.interval
+        
+      if start == None:
+        start = self.logger_start
+      elif start == 'A':
+        start = 2
+      else:
+        start = 1
 
-        if start == 'A':
-            self.logger_start = 2
-        else:
-            self.logger_start = 1
+      buf = pack("IIIIIhhhhBBBBBBB16sBhhhhI", 0xce, num_data, \
+      0, interval, now.year, 0, self.thresh_temp_low, 0, self.thresh_temp_high, \
+      now.month, now.day, now.hour, now.minute, now.second, self.temp_fahrenheit, self.led_conf, \
+      name, start, 0, self.thresh_rh_low, 0, self.thresh_rh_high, 0xce)
 
-        buf = pack("IIIIIhhhhBBBBBBB16sBhhhhI", 0xce, num_data, \
-        0, interval, now.year, 0, self.thresh_temp_low, 0, self.thresh_temp_high, \
-        now.month, now.day, now.hour, now.minute, now.second, self.temp_fahrenheit, self.led_conf, \
-        name, self.logger_start, 0, self.thresh_rh_low, 0, self.thresh_rh_high, 0xce)
+      # Configuration writing request
+      msg=[0x01, 0x40, 0x00]
+      # Ask for configuration write
+      ret = self.handle.bulkWrite(Dl120th.BULK_OUT_EP, msg, 1000)
+      print "Config return:", ret
 
-        # Configuration writing request
-        msg=[0x01, 0x40, 0x00]
-        # Ask for configuration write
-        ret = self.handle.bulkWrite(Dl120th.BULK_OUT_EP, msg, 1000)
-        print "Config return:", ret
+      if (ret):
+        # Send the configuration
+        ret = self.handle.bulkWrite(Dl120th.BULK_OUT_EP, buf, 1000)
 
-        if (ret):
-            # Send the configuration
-            ret = self.handle.bulkWrite(Dl120th.BULK_OUT_EP, buf, 1000)
+      if (ret):
+        # Read the response
+        data = self.handle.bulkRead(Dl120th.BULK_IN_EP, Dl120th.PACKET_LENGTH, 1000)
 
-        if (ret):
-            # Read the response
-            data = self.handle.bulkRead(Dl120th.BULK_IN_EP, Dl120th.PACKET_LENGTH, 1000)
-
-            if (data):
-                #print "Return code:", data[0] & 0xff
-                if (data[0] & 0xff) != 0xff :
-                    print "Error writing configuration", hex(data[0])
-                    sys.exit(1)
+        if (data):
+          #print "Return code:", data[0] & 0xff
+          if (data[0] & 0xff) != 0xff :
+            print "Error writing configuration", hex(data[0])
+            sys.exit(1)
 
     def print_config(self):
         """ Print the configuration. """
@@ -195,10 +208,10 @@ class Dl120th:
             print "\t>Start logging: Manual (you need to press the red button to start logging)"
         else:
             print "\t>Start logging: Automatic"
-        print "\t>Threshold temp low:", THRESHOLD.index(self.thresh_temp_low)
-        print "\t>Threshold temp high:", THRESHOLD.index(self.thresh_temp_high)
-        print "\t>Threshold rh low:", THRESHOLD.index(self.thresh_rh_low)
-        print "\t>Threshold rh high:", THRESHOLD.index(self.thresh_rh_high)
+        print "\t>Threshold temp low:", Dl120th.THRESHOLD.index(self.thresh_temp_low)
+        print "\t>Threshold temp high:", Dl120th.THRESHOLD.index(self.thresh_temp_high)
+        print "\t>Threshold rh low:", Dl120th.THRESHOLD.index(self.thresh_rh_low)
+        print "\t>Threshold rh high:", Dl120th.THRESHOLD.index(self.thresh_rh_high)
         print "\t>logger end:", hex(self.logger_end)
         print "Configuration end\n"
 
@@ -364,30 +377,21 @@ if __name__ == '__main__':
             commandOk = False
 
     if args.command == 'reset':
-        dl120th.read_config()
         if args.logname != None and len(args.logname) > 15:
             print "Logname length should be less or equals than 15."
             commandOk = False
-        else:
-            dl120th.logger_name = args.logname
+        
         if args.numdata != None and (args.numdata < 50 or args.numdata > 16000):
             print "The number of data to record should be between 50 and 16000."
             commandOk = False
-        else:
-            dl120th.num_data_conf = args.numdata
+        
         if args.interval != None and (args.interval < 2 or args.numdata > 86400):
             print "The interval of data collected should be between 2s and 86400s (24h)."
             commandOk = False
-        else:
-            dl120th.interval = args.interval
+        
         if args.start != None and args.start != 'A' and args.start != 'M' :
             print "Start should be A (Automatic) or M (Manual)."
             commandOk = False
-        else:
-            if args.start == 'A' :
-                dl120th.logger_start = 2
-            if args.start == 'M' :
-                dl120th.logger_start = 1
             
     if not commandOk:
         print "Command line error..."
@@ -395,11 +399,11 @@ if __name__ == '__main__':
 
     if args.command == 'config':
         print args.command, " Logger=", args.logname, " numdata=", args.numdata, "@", args.interval, " sec. "
-        dl120th.write_config(args.logname, args.numdata, args.interval, args.logger_start)
+        dl120th.write_config(args.logname, args.numdata, args.interval, args.start)
 
     if args.command == 'reset':
         print args.command, " Logger=", args.logname, " numdata=", args.numdata, "@", args.interval, " sec. "
-        dl120th.write_config(dl120th.logger_name, dl120th.num_data_conf, dl120th.interval, dl120th.logger_start)
+        dl120th.write_config(args.logname, args.numdata, args.interval, args.start)
 
     if args.command == 'info':
         dl120th.print_config()
