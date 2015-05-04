@@ -7,12 +7,11 @@
 
 import argparse
 import sys
-import os
 import usb
+import sqlite3
 
 from datetime import datetime, timedelta
-from array import array
-from struct import *
+from struct import pack, unpack
 
 
 class DeviceDescriptor:
@@ -75,13 +74,14 @@ class Dl120th:
         """ Acquire device interface """
         self.device = self.device_descriptor.get_device()
         if not self.device:
-            print >> sys.stderr, "Device isn't plugged in"
+            print("Device isn't plugged in.")
             sys.exit(1)
+
         try:
             self.handle = self.device.open()
             self.handle.claimInterface(self.device_descriptor.interface_id)
-        except usb.USBError, err:
-            print >> sys.stderr, err
+        except usb.USBError as err:
+            print(err)
             sys.exit(1)
 
     def close(self):
@@ -89,8 +89,8 @@ class Dl120th:
         try:
             self.handle.reset()
             self.handle.releaseInterface()
-        except Exception, err:
-            print >> sys.stderr, err
+        except Exception as err:
+            print(err)
 
         self.handle, self.device = None, None
 
@@ -101,7 +101,7 @@ class Dl120th:
 
         # Write the request
         sent_bytes = self.handle.bulkWrite(Dl120th.BULK_OUT_EP, msg, 1000)
-        print "Read Config request return:", sent_bytes
+        print("Read Config request return:", sent_bytes)
 
         # Read the response (Status)
         if (sent_bytes):
@@ -109,13 +109,13 @@ class Dl120th:
                                               Dl120th.PACKET_LENGTH,
                                               1000)
 
-        print "Read Config response return:", read_bytes
+        print("Read Config response return:", read_bytes)
 
         # Read the configuration
         data = self.handle.bulkRead(Dl120th.BULK_IN_EP,
                                     Dl120th.PACKET_LENGTH,
                                     1000)
-        print "Config data:", data
+        print("Config data:", data)
 
         # Unpack the configuration data
         self.logger_state, \
@@ -151,11 +151,11 @@ class Dl120th:
 
     def write_config(self, name, num_data, interval, start):
         """ Write the configuration. """
-        print ("DL120TH Logger=", self.logger_name, " numdata=",
-               self.num_data_conf, "@", self.interval, " sec. ",
-               "Start=", self.logger_start)
-        print ("params name=", name, " num_data=", num_data,
-               " interval=", interval, " start_logging=", start)
+        print("DL120TH Logger=", self.logger_name, " numdata=",
+              self.num_data_conf, "@", self.interval, " sec. ",
+              "Start=", self.logger_start)
+        print("params name=", name, " num_data=", num_data,
+              " interval=", interval, " start_logging=", start)
 
         # Construct configuration data
         now = datetime.now()
@@ -189,7 +189,7 @@ class Dl120th:
 
         # Ask for configuration write
         ret = self.handle.bulkWrite(Dl120th.BULK_OUT_EP, msg, 1000)
-        print "Config return:", ret
+        print("Config return:", ret)
 
         if (ret):
             # Send the configuration
@@ -208,37 +208,37 @@ class Dl120th:
 
     def print_config(self):
         """ Print the configuration. """
-        print ("Configuration begin")
-        print ("\t>State: ", hex(self.logger_state))
-        print ("\t>Number of data conf: ", self.num_data_conf)
-        print ("\t>Number of data rec: ", self.num_data_rec)
-        print ("\t>Interval: ", self.interval)
-        print ("\t>Start of recording:", str(self.start_rec))
-        print ("\t>End of recording:", str(self.end_rec))
+        print("Configuration begin")
+        print("\t>State: ", hex(self.logger_state))
+        print("\t>Number of data conf: ", self.num_data_conf)
+        print("\t>Number of data rec: ", self.num_data_rec)
+        print("\t>Interval: ", self.interval)
+        print("\t>Start of recording:", str(self.start_rec))
+        print("\t>End of recording:", str(self.end_rec))
         if self.temp_fahrenheit == 1:
-            print ("\t>Farenheit conf: True (",
-                   hex(self.temp_fahrenheit), ")")
+            print("\t>Farenheit conf: True (",
+                  hex(self.temp_fahrenheit), ")")
         else:
-            print ("\t>Farenheit conf: False °C (",
-                   hex(self.temp_fahrenheit), ")")
-        print ("\t>Led conf:", hex(self.led_conf))
-        print ("\t>Name:", self.logger_name, ": length=",
-               len(self.logger_name))
+            print("\t>Farenheit conf: False °C (",
+                  hex(self.temp_fahrenheit), ")")
+        print("\t>Led conf:", hex(self.led_conf))
+        print("\t>Name:", self.logger_name, ": length=",
+              len(self.logger_name))
         if self.logger_start == 1:
-            print ("\t>Start logging: Manual (you need to press ",
-                   "the red button to start logging)")
+            print("\t>Start logging: Manual (you need to press ",
+                  "the red button to start logging)")
         else:
-            print ("\t>Start logging: Automatic")
-        print ("\t>Threshold temp low:",
-               Dl120th.THRESHOLD.index(self.thresh_temp_low))
-        print ("\t>Threshold temp high:",
-               Dl120th.THRESHOLD.index(self.thresh_temp_high))
-        print ("\t>Threshold rh low:",
-               Dl120th.THRESHOLD.index(self.thresh_rh_low))
-        print ("\t>Threshold rh high:",
-               Dl120th.THRESHOLD.index(self.thresh_rh_high))
-        print ("\t>logger end:", hex(self.logger_end))
-        print ("Configuration end\n")
+            print("\t>Start logging: Automatic")
+        print("\t>Threshold temp low:",
+              Dl120th.THRESHOLD.index(self.thresh_temp_low))
+        print("\t>Threshold temp high:",
+              Dl120th.THRESHOLD.index(self.thresh_temp_high))
+        print("\t>Threshold rh low:",
+              Dl120th.THRESHOLD.index(self.thresh_rh_low))
+        print("\t>Threshold rh high:",
+              Dl120th.THRESHOLD.index(self.thresh_rh_high))
+        print("\t>logger end:", hex(self.logger_end))
+        print("Configuration end\n")
 
     def read_data(self):
         """ Read data recorded. """
@@ -254,7 +254,7 @@ class Dl120th:
         if (sent_bytes):
             data = self.handle.bulkRead(Dl120th.BULK_IN_EP,
                                         Dl120th.PACKET_LENGTH, 1000)
-            print ("Status:", data, " - ", len(data))
+            print("Status:", data, " - ", len(data))
 
         # Read the data
         data = self.handle.bulkRead(Dl120th.BULK_IN_EP,
@@ -277,7 +277,7 @@ class Dl120th:
 
         while self.num_data < self.num_data_rec:
             if (self.num_data_rec - self.num_data < 16):
-                print ("data to read : ", self.num_data_rec - self.num_data)
+                print("data to read : ", self.num_data_rec - self.num_data)
 
             # Read the data
             data = self.handle.bulkRead(Dl120th.BULK_IN_EP,
@@ -318,15 +318,15 @@ class Dl120th:
         """ Print the data """
         for i in range(self.num_data_rec):
             data_datetime = self.start_rec + \
-                timedelta(seconds=(i*self.interval))
-            print (i, str(data_datetime),
-                   data_datetime.strftime("%s"),
-                   self.temp[i] / 10.0,
-                   self.rh[i] / 10.0)
+                timedelta(seconds=(i * self.interval))
+            print(i, str(data_datetime),
+                  data_datetime.strftime("%s"),
+                  self.temp[i] / 10.0,
+                  self.rh[i] / 10.0)
 
     def save_data_to_file(self, fn):
         """ Save data in text file. """
-        print ("Filename:", fn)
+        print("Filename:", fn)
         with open(fn, "w", 4096) as datafile:
             line = "# %s [%s] %i points @ %i sec\n" % (
                 self.logger_name,
@@ -337,7 +337,7 @@ class Dl120th:
 
             for i in range(self.num_data_rec):
                 data_datetime = self.start_rec + \
-                    timedelta(seconds=(i*self.interval))
+                    timedelta(seconds=(i * self.interval))
                 line = data_datetime.strftime("%s") + " " + \
                     data_datetime.strftime("%Y-%m-%d %H:%M:%S") + " " + \
                     str(self.temp[i] / 10.0) + " " + \
@@ -348,28 +348,28 @@ class Dl120th:
 
     def save_data_to_db(self, db):
         """ Save data in SQLite database. """
-        print ("Database:", db)
+        print("Database:", db)
         conn = sqlite3.connect(db)
         c = conn.cursor()
 
         for i in range(self.num_data_rec):
             data_datetime = self.start_rec
-            + timedelta(seconds=(i*self.interval))
+            + timedelta(seconds=(i * self.interval))
             c.execute('INSERT INTO sensors VALUES (?, ?, ?, ?)', (
-                    self.logger_name,
-                    data_datetime.strftime("%s"),
-                    self.temp[i] / 10.0,
-                    self.rh[i] / 10.0))
+                self.logger_name,
+                data_datetime.strftime("%s"),
+                self.temp[i] / 10.0,
+                self.rh[i] / 10.0))
 
     def write(self, msg):
         sent_bytes = self.handle.bulkWrite(Dl120th.BULK_OUT_EP, msg, 1000)
-        print "sent_bytes: ", sent_bytes
+        print("sent_bytes: ", sent_bytes)
 
     def read(self):
         try:
             data = self.handle.interruptRead(Dl120th.BULK_OUT_EP,
                                              Dl120th.PACKET_LENGTH, 1000)
-            print "data length: ", len(data), " data: ", data
+            print("data length: ", len(data), " data: ", data)
             return data
         except usb.USBError:
             if usb.USBError.args != ('No error',):
@@ -421,68 +421,66 @@ if __name__ == '__main__':
 
     if args.command == 'config':
         if args.logname is None:
-            print ("Logname is mandatory in config mode.")
+            print("Logname is mandatory in config mode.")
             commandOk = False
         if args.numdata is None:
             print ("Numdata is mandatory in config mode.")
             commandOk = False
         if args.interval is None:
-            print ("Interval is mandatory in config mode.")
+            print("Interval is mandatory in config mode.")
             commandOk = False
         if len(args.logname) < 1:
-            print ("Logname is mandatory in config mode.")
+            print("Logname is mandatory in config mode.")
             commandOk = False
         if len(args.logname) > 15:
-            print ("Logname length should be less or equals than 15.")
+            print("Logname length should be less or equals than 15.")
             commandOk = False
         if args.numdata < 50 or args.numdata > 16000:
-            print ("The number of data to record should be ",
-                   "between 50 and 16000.")
+            print("The number of data to record should be ",
+                  "between 50 and 16000.")
             commandOk = False
         if args.interval < 2 or args.numdata > 86400:
-            print ("The interval of data collected should ",
-                   "be between 2s and 86400s (24h).")
+            print("The interval of data collected should ",
+                  "be between 2s and 86400s (24h).")
             commandOk = False
-        if args.start is not None
-        and args.start != 'A' and args.start != 'M':
-            print ("Start should be A (Automatic) or M (Manual).")
+        if args.start is not None and args.start != 'A' and args.start != 'M':
+            print("Start should be A (Automatic) or M (Manual).")
             commandOk = False
 
     if args.command == 'reset':
-        if args.logname is not None
-        and len(args.logname) > 15:
-            print ("Logname length should be less or equals than 15.")
+        if args.logname is not None and len(args.logname) > 15:
+            print("Logname length should be less or equals than 15.")
             commandOk = False
 
-        if args.numdata is not None
-        and (args.numdata < 50 or args.numdata > 16000):
-            print ("The number of data to record should ",
-                   "be between 50 and 16000.")
+        if (args.numdata is not None
+                and (args.numdata < 50 or args.numdata > 16000)):
+            print("The number of data to record should ",
+                  "be between 50 and 16000.")
             commandOk = False
 
-        if args.interval is not None
-        and (args.interval < 2 or args.numdata > 86400):
-                print ("The interval of data collected should ",
-                       "be between 2s and 86400s (24h).")
-                commandOk = False
+        if (args.interval is not None
+                and (args.interval < 2 or args.numdata > 86400)):
+            print("The interval of data collected should ",
+                  "be between 2s and 86400s (24h).")
+            commandOk = False
 
         if args.start is not None and args.start != 'A' and args.start != 'M':
-            print ("Start should be A (Automatic) or M (Manual).")
+            print("Start should be A (Automatic) or M (Manual).")
             commandOk = False
 
     if not commandOk:
-        print ("Command line error...")
+        print("Command line error...")
         sys.exit(2)
 
     if args.command == 'config':
-        print (args.command, " Logger=", args.logname,
-               " numdata=", args.numdata, "@", args.interval, " sec. ")
+        print(args.command, " Logger=", args.logname,
+              " numdata=", args.numdata, "@", args.interval, " sec. ")
         dl120th.write_config(args.logname, args.numdata,
                              args.interval, args.start)
 
     if args.command == 'reset':
-        print (args.command, " Logger=", args.logname,
-               " numdata=", args.numdata, "@", args.interval, " sec. ")
+        print(args.command, " Logger=", args.logname,
+              " numdata=", args.numdata, "@", args.interval, " sec. ")
         dl120th.write_config(args.logname, args.numdata,
                              args.interval, args.start)
 
@@ -490,7 +488,7 @@ if __name__ == '__main__':
         dl120th.print_config()
 
     if args.command == 'print':
-        print args.command
+        print(args.command)
         dl120th.read_data()
         dl120th.print_data()
 
@@ -501,7 +499,7 @@ if __name__ == '__main__':
                 dl120th.start_rec.strftime("%Y%m%d-%H%M%S") + ".dat"
         else:
             fn = args.output
-        print args.command, " output=", fn
+        print(args.command, " output=", fn)
         dl120th.save_data_to_file(fn)
 
     dl120th.close()
