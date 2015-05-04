@@ -452,14 +452,14 @@ if __name__ == '__main__':
             print("Logname length should be less or equals than 15.")
             commandOk = False
 
-        if (args.numdata is not None
-                and (args.numdata < 50 or args.numdata > 16000)):
+        if (args.numdata is not None and
+                (args.numdata < 50 or args.numdata > 16000)):
             print("The number of data to record should ",
                   "be between 50 and 16000.")
             commandOk = False
 
-        if (args.interval is not None
-                and (args.interval < 2 or args.numdata > 86400)):
+        if (args.interval is not None and
+                (args.interval < 2 or args.numdata > 86400)):
             print("The interval of data collected should ",
                   "be between 2s and 86400s (24h).")
             commandOk = False
