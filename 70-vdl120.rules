@@ -1,0 +1,3 @@
+# Datalogger Voltcraft DL-120TH
+SUBSYSTEM=="usb", ATTR{idVendor}=="10c4", ATTR{idProduct}=="0003", MODE="0660",GROUP="plugdev"
+
